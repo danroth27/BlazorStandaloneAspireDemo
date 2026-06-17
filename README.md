@@ -234,7 +234,7 @@ The Blazor hosting integration is preview-only. The latest publicly published ve
 | `Aspire.Hosting.Blazor` | `13.4.5-preview.1.26316.12` | nuget.org |
 | `Microsoft.AspNetCore.Components.WebAssembly` | `11.0.0-preview.5.*` | nuget.org |
 
-Because Preview 5 predates the upstream "align gateway and templates" work, four minimal
+Because Preview 5 predates the upstream "align gateway and templates" work, five minimal
 adjustments are applied versus a naive scaffold. All are bridges for known preview-era gaps
 and can be reverted once the fixes ship publicly:
 
@@ -287,6 +287,25 @@ and can be reverted once the fixes ship publicly:
    post-#67048 template still resolves `ILoggerFactory`; it relies on a post-Preview-5 runtime fix,
    so this `NullLogger` shim can be reverted once that runtime ships.
 
+5. **`BlazorStandalone.csproj` enables WASM runtime diagnostics feature switches.** Blazor
+   WebAssembly trims diagnostics by default, so without these the client emits **no metrics and no
+   traces** (instruments become no-ops and `HttpClient` never creates `Activity` spans):
+
+   ```xml
+   <MetricsSupport>true</MetricsSupport>
+   <EventSourceSupport>true</EventSourceSupport>
+   <HttpActivityPropagationSupport>true</HttpActivityPropagationSupport>
+   <!-- plus -->
+   <RuntimeHostConfigurationOption Include="System.Net.Http.EnableActivityPropagation" Value="true" />
+   ```
+
+   The official playground sets these explicitly. They are needed because the runtime change to turn
+   metrics/EventSource support on by default in WASM did **not** land for Preview 5 — once it ships,
+   these switches can be removed. Verified end-to-end with a headless browser: after adding the
+   switches, the client exports both `v1/metrics` and `v1/traces` (previously traces were absent).
+   _Tracking:_ [dotnet/aspnetcore#64575](https://github.com/dotnet/aspnetcore/issues/64575) (enable
+   WASM metrics/EventSource support by default).
+
 References:
 - Official sample: [`microsoft/aspire` · `playground/BlazorStandalone`](https://github.com/microsoft/aspire/tree/main/playground/BlazorStandalone)
 - WASM service defaults template epic: [`dotnet/aspnetcore#64574`](https://github.com/dotnet/aspnetcore/issues/64574)
@@ -295,6 +314,7 @@ References:
 - ILoggerFactory `CircularDependencyException` (client + gateway): [`dotnet/aspnetcore#67032`](https://github.com/dotnet/aspnetcore/issues/67032)
 - Hosted services in `WebAssemblyHost`: [`dotnet/aspnetcore#63814`](https://github.com/dotnet/aspnetcore/pull/63814)
 - Root OpenTelemetry-in-WASM issue: [`open-telemetry/opentelemetry-dotnet#2816`](https://github.com/open-telemetry/opentelemetry-dotnet/issues/2816)
+- Enable WASM metrics/EventSource support by default: [`dotnet/aspnetcore#64575`](https://github.com/dotnet/aspnetcore/issues/64575)
 
 Conversely, **.NET 11 removes** one workaround that earlier samples needed: `WebAssemblyHost`
 now runs `IHostedService` ([dotnet/aspnetcore#63814](https://github.com/dotnet/aspnetcore/pull/63814)),
