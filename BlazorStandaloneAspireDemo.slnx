@@ -1,7 +1,7 @@
 <Solution>
   <Project Path="BlazorStandalone.AppHost/BlazorStandalone.AppHost.csproj" />
+  <Project Path="BlazorStandalone.ApiService/BlazorStandalone.ApiService.csproj" />
+  <Project Path="BlazorStandalone.ServiceDefaults/BlazorStandalone.ServiceDefaults.csproj" />
   <Project Path="BlazorStandalone/BlazorStandalone.csproj" />
   <Project Path="BlazorStandalone.ClientServiceDefaults/BlazorStandalone.ClientServiceDefaults.csproj" />
-  <Project Path="BlazorStandalone.WeatherApi/BlazorStandalone.WeatherApi.csproj" />
-  <Project Path="BlazorStandalone.ServiceDefaults/BlazorStandalone.ServiceDefaults.csproj" />
 </Solution>

@@ -1,26 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>net11.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <MetricsSupport>true</MetricsSupport>
-    <EventSourceSupport>true</EventSourceSupport>
-    <HttpActivityPropagationSupport>true</HttpActivityPropagationSupport>
+    <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
+    <StaticWebAssetSpaFallbackEnabled>true</StaticWebAssetSpaFallbackEnabled>
   </PropertyGroup>
 
   <ItemGroup>
-    <RuntimeHostConfigurationOption Include="System.Net.Http.EnableActivityPropagation">
-      <Value>true</Value>
-    </RuntimeHostConfigurationOption>
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.8" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.8" />
-    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.3" />
-    <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.15.3" />
-    <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.15.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="11.0.0-preview.5.26302.115" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Gateway" Version="11.0.0-preview.5.26302.115" PrivateAssets="all" />
+    <!-- Service discovery reads endpoints from IConfiguration; the gateway delivers them as env vars. -->
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="11.0.0-preview.5.26302.115" />
   </ItemGroup>
 
   <ItemGroup>

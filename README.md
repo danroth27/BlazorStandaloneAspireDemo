@@ -24,18 +24,18 @@ graph TB
     subgraph AppHost["Aspire AppHost"]
         Dashboard["Dashboard<br/>(OTLP + UI)"]
         Gateway["gateway<br/>(YARP reverse proxy)"]
-        WeatherAPI["weatherapi<br/>(Web API)"]
+        ApiService["apiservice<br/>(Web API)"]
     end
 
     subgraph Browser
-        WASM["Blazor WebAssembly Client<br/>• Fetches config from /_blazor/_configuration<br/>• Uses service discovery to resolve weatherapi<br/>• Sends OTLP telemetry via gateway proxy"]
+        WASM["Blazor WebAssembly Client (.NET 11)<br/>• Fetches config from /_blazor/_configuration<br/>• Uses service discovery to resolve apiservice<br/>• Sends OTLP telemetry via gateway proxy"]
     end
 
     WASM -- "Static files +<br/>/_blazor/_configuration" --> Gateway
-    WASM -- "/_otlp/* (OTLP proxy)" --> Gateway
-    WASM -- "/weatherapi/* (API proxy)" --> Gateway
+    WASM -- "/app/_otlp/* (OTLP proxy)" --> Gateway
+    WASM -- "/app/_api/apiservice/* (API proxy)" --> Gateway
     Gateway -- "OTLP forward" --> Dashboard
-    Gateway -- "HTTP reverse proxy" --> WeatherAPI
+    Gateway -- "HTTP reverse proxy" --> ApiService
 ```
 
 ## How It Works
@@ -47,20 +47,31 @@ The `Aspire.Hosting.Blazor` package provides `AddBlazorWasmProject` and `AddBlaz
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
 
-var weatherApi = builder.AddProject<Projects.BlazorStandalone_WeatherApi>("weatherapi");
+var apiService = builder.AddProject<Projects.BlazorStandalone_ApiService>("apiservice")
+    .WithHttpHealthCheck("/health");
 
 // Register the WASM app — the resource name becomes the URL path prefix (e.g., /app/)
 var blazorApp = builder.AddBlazorWasmProject<Projects.BlazorStandalone>("app")
-    .WithReference(weatherApi);
+    .WithReference(apiService);
 
 // The Gateway serves WASM files and proxies API + OTLP traffic
-var gateway = builder.AddBlazorGateway("gateway")
+builder.AddBlazorGateway("gateway")
     .WithExternalHttpEndpoints()
-    .WithOtlpExporter(Aspire.Hosting.OtlpProtocol.HttpProtobuf)
+    .WithOtlpExporter()
     .WithBlazorClientApp(blazorApp);
 
 builder.Build().Run();
 ```
+
+> **Note on `WithOtlpExporter()`:** The official playground uses
+> `.WithOtlpExporter(OtlpProtocol.HttpProtobuf)`. On the public nuget.org
+> `Aspire.Hosting.Blazor 13.4.5-preview` package, that protocol makes the generated
+> `Gateway.cs` fail at startup with a circular `ILoggerFactory` dependency
+> (the gateway's own OTLP **log** exporter resolves an `IHttpClientFactory` that needs
+> `ILoggerFactory` while it is still being built). Using the default (gRPC) for the
+> gateway's **own** telemetry avoids the crash; **client** (browser) telemetry is
+> unaffected because it is proxied separately over HTTP/protobuf via `/app/_otlp/`.
+> See the "Versions & preview notes" section below.
 
 At startup, the hosting layer:
 1. Reads the WASM project's `staticwebassets.build.json` manifest to locate static files
@@ -76,18 +87,21 @@ The gateway serves a `/_blazor/_configuration` endpoint that returns the configu
 {
   "webAssembly": {
     "environment": {
-      "services__weatherapi__https__0": "https://localhost:7101",
-      "services__weatherapi__http__0": "http://localhost:5101",
-      "OTEL_EXPORTER_OTLP_ENDPOINT": "https://localhost:65269/_otlp/",
-      "OTEL_EXPORTER_OTLP_PROTOCOL": "http/protobuf",
+      "services__apiservice__https__0": "https://localhost:63807/app/_api/apiservice",
+      "services__apiservice__http__0": "https://localhost:63807/app/_api/apiservice",
       "OTEL_SERVICE_NAME": "app",
-      "OTEL_EXPORTER_OTLP_HEADERS": "x-otlp-api-key=..."
+      "OTEL_EXPORTER_OTLP_ENDPOINT": "/app/_otlp",
+      "OTEL_EXPORTER_OTLP_PROTOCOL": "http/protobuf"
     }
   }
 }
 ```
 
-Note: The OTLP endpoint points back to the gateway's own `/_otlp/` path, which proxies traffic to the Aspire dashboard. This avoids CORS issues since the browser sends telemetry to its own origin.
+Note: `OTEL_EXPORTER_OTLP_ENDPOINT` is a **relative** path (`/app/_otlp`). The client resolves
+it against `HostEnvironment.BaseAddress` so telemetry is sent to the same origin the user
+navigated to (the gateway's `/app/_otlp/` proxy), which forwards it to the Aspire dashboard.
+This avoids cross-origin issues. The dashboard OTLP API-key header is **not** sent to the
+browser; the gateway injects it server-side when forwarding.
 
 ### Step 3: JavaScript Initializer Injects Environment Variables
 
@@ -127,9 +141,9 @@ builder.Configuration.AddEnvironmentVariables();
 builder.AddBlazorClientServiceDefaults();
 
 // Named HttpClient using service discovery
-builder.Services.AddHttpClient("weatherapi", client =>
+builder.Services.AddHttpClient("apiservice", client =>
 {
-    client.BaseAddress = new Uri("https+http://weatherapi");
+    client.BaseAddress = new Uri("https+http://apiservice");
 });
 ```
 
@@ -143,12 +157,12 @@ sequenceDiagram
     participant GW as Gateway (YARP)
     participant DB as Aspire Dashboard
 
-    WASM->>GW: POST /_otlp/v1/traces (protobuf)
+    WASM->>GW: POST /app/_otlp/v1/traces (protobuf)
     GW->>DB: Forward to OTLP HTTP endpoint
     DB-->>GW: 200 OK
     GW-->>WASM: 200 OK
 
-    WASM->>GW: POST /_otlp/v1/logs (protobuf)
+    WASM->>GW: POST /app/_otlp/v1/logs (protobuf)
     GW->>DB: Forward to OTLP HTTP endpoint
     DB-->>GW: 200 OK
     GW-->>WASM: 200 OK
@@ -171,23 +185,24 @@ await host.RunAsync();
 
 ```text
 BlazorStandalone/
-├── BlazorStandalone.AppHost/           # Aspire orchestrator
-│   └── Program.cs                                # AddBlazorWasmProject + AddBlazorGateway
+├── BlazorStandalone.AppHost/                # Aspire orchestrator (net10.0)
+│   ├── AppHost.cs                               # AddBlazorWasmProject + AddBlazorGateway
+│   └── Properties/launchSettings.json           # Dashboard gRPC + HTTP OTLP endpoints
 │
-├── BlazorStandalone/                   # Standalone Blazor WASM client
-│   ├── Program.cs                                # AddEnvironmentVariables() + service discovery
-│   └── Pages/Weather.razor                       # Calls WeatherAPI via HttpClientFactory
+├── BlazorStandalone/                        # Standalone Blazor WASM client (net11.0)
+│   ├── Program.cs                               # AddEnvironmentVariables() + service discovery
+│   └── Pages/Weather.razor                      # Calls apiservice via IHttpClientFactory
 │
-├── BlazorStandalone.ClientServiceDefaults/  # WASM-side telemetry + config
-│   ├── Extensions.cs                             # AddBlazorClientServiceDefaults()
-│   ├── Telemetry/                                # Custom OTLP exporters for WebAssembly
-│   └── wwwroot/*.lib.module.js                   # JS initializer: fetches /_blazor/_configuration
+├── BlazorStandalone.ClientServiceDefaults/  # WASM-side telemetry + config (net11.0)
+│   ├── Extensions.cs                            # AddBlazorClientServiceDefaults()
+│   ├── BackgroundExportHandler.cs              # WASM-safe fire-and-forget OTLP export
+│   └── wwwroot/*.lib.module.js                  # JS initializer: fetches /_blazor/_configuration
 │
-├── BlazorStandalone.ServiceDefaults/   # Server-side Aspire defaults
-│   └── Extensions.cs                             # Standard AddServiceDefaults()
+├── BlazorStandalone.ServiceDefaults/        # Server-side Aspire defaults (net10.0)
+│   └── Extensions.cs                            # Standard AddServiceDefaults()
 │
-└── BlazorStandalone.WeatherApi/        # Sample API
-    └── Program.cs                                # Minimal API with /weatherforecast
+└── BlazorStandalone.ApiService/             # Sample API (net10.0)
+    └── Program.cs                              # Minimal API with /weatherforecast
 ```
 
 ## Running the Sample
@@ -206,7 +221,45 @@ BlazorStandalone/
 
 5. **View telemetry** in the Aspire dashboard:
    - **Structured Logs** — logs from `gateway` (server) and `app` (WASM client)
-   - **Traces** — distributed traces: `app` → `gateway` → `weatherapi`
+   - **Traces** — distributed traces: `app` → `gateway` → `apiservice`
+
+## Versions & preview notes
+
+This sample targets **Aspire 13.4** (public nuget.org packages) with a **.NET 11 Preview 5**
+Blazor WebAssembly client. The server projects (AppHost, ApiService, ServiceDefaults) target
+`net10.0`; the WASM client and its ClientServiceDefaults target `net11.0`.
+
+The Blazor hosting integration is preview-only. The latest publicly published versions used here:
+
+| Package | Version | Source |
+|---------|---------|--------|
+| `Aspire.AppHost.Sdk` | `13.4.5` | nuget.org |
+| `Aspire.Hosting.Blazor` | `13.4.5-preview.1.26316.12` | nuget.org |
+| `Microsoft.AspNetCore.Components.WebAssembly` | `11.0.0-preview.5.*` | nuget.org |
+
+Because Preview 5 predates the upstream "align gateway and templates" work, two minimal
+adjustments are applied versus a naive scaffold. Both are bridges for known preview-era gaps
+and can be reverted once the fixes ship publicly:
+
+1. **AppHost `launchSettings.json` adds `ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL`.** The
+   `aspire-starter` template only emits the gRPC OTLP endpoint, but WASM clients export via
+   HTTP/protobuf, so the gateway needs the dashboard's **HTTP** OTLP endpoint to proxy client
+   telemetry. (The official playground `launchSettings.json` includes this.)
+
+2. **Gateway self-export uses gRPC (`WithOtlpExporter()`), not `HttpProtobuf`.** Works around a
+   circular `ILoggerFactory` dependency that crashes the generated `Gateway.cs` on the public
+   `13.4.5-preview` package. Client telemetry is unaffected (proxied over HTTP/protobuf).
+
+3. **`ClientServiceDefaults/Extensions.cs` resolves the OTLP endpoint against
+   `HostEnvironment.BaseAddress`** and sets explicit `v1/logs` / `v1/traces` / `v1/metrics`
+   endpoints — matching the post-Preview-5 template. The Preview 5 `dotnet new
+   blazor-wasm-servicedefaults` template called bare `AddOtlpExporter()`, which does not handle
+   the relative `/app/_otlp` endpoint the gateway emits.
+
+References:
+- Official sample: [`microsoft/aspire` · `playground/BlazorStandalone`](https://github.com/microsoft/aspire/tree/main/playground/BlazorStandalone)
+- Gateway/config rework: [`microsoft/aspire#17384`](https://github.com/microsoft/aspire/pull/17384)
+- Template/gateway alignment (post-Preview-5): [`dotnet/aspnetcore#67048`](https://github.com/dotnet/aspnetcore/pull/67048)
 
 ## Key Differences from Hosted Blazor
 

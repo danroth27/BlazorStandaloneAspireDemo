@@ -1,11 +1,11 @@
-@page "/weather"
+﻿@page "/weather"
 @inject IHttpClientFactory HttpClientFactory
 
 <PageTitle>Weather</PageTitle>
 
 <h1>Weather</h1>
 
-<p>This component demonstrates fetching data from the WeatherAPI service via Aspire service discovery.</p>
+<p>This component demonstrates fetching data from the weather API via Aspire service discovery.</p>
 
 @if (errorMessage != null)
 {
@@ -21,8 +21,8 @@ else
         <thead>
             <tr>
                 <th>Date</th>
-                <th>Temp. (C)</th>
-                <th>Temp. (F)</th>
+                <th aria-label="Temperature in Celsius">Temp. (C)</th>
+                <th aria-label="Temperature in Fahrenheit">Temp. (F)</th>
                 <th>Summary</th>
             </tr>
         </thead>
@@ -48,8 +48,8 @@ else
     {
         try
         {
-            var client = HttpClientFactory.CreateClient("weatherapi");
-            // Call the WeatherAPI directly using service discovery
+            // "apiservice" is resolved to the weather API endpoint via Aspire service discovery.
+            var client = HttpClientFactory.CreateClient("apiservice");
             forecasts = await client.GetFromJsonAsync<WeatherForecast[]>("weatherforecast");
         }
         catch (Exception ex)

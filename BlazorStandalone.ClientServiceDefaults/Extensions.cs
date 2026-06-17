@@ -1,15 +1,21 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
+using BlazorStandalone.ClientServiceDefaults;
 using Microsoft.AspNetCore.Components.Infrastructure;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using OpenTelemetry;
 using OpenTelemetry.Exporter;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Polly;
+using Polly.Retry;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -34,20 +40,25 @@ public static class BlazorClientExtensions
 
     private static WebAssemblyHostBuilder ConfigureBlazorClientOpenTelemetry(this WebAssemblyHostBuilder builder)
     {
-        // Without an OTLP path base, there's nowhere to export telemetry in WASM.
+        // Without an OTLP endpoint there's nowhere to export telemetry in WASM.
         var otlpPathBase = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
         if (string.IsNullOrEmpty(otlpPathBase))
         {
             return builder;
         }
 
-        var serviceName = builder.Configuration["OTEL_SERVICE_NAME"]!;
+        // Read the service name from configuration (set by Aspire hosting via the gateway).
+        var serviceName = builder.Configuration["OTEL_SERVICE_NAME"] ?? "BlazorStandalone.ClientServiceDefaults";
 
-        // Build a resilience pipeline matching OTLP retry spec behavior:
-        //   - Initial backoff: 1s (OTLP default), max 5s
-        //   - Exponential backoff with jitter
-        //   - Honors Retry-After header from 429/503
-        //   - Retryable: 408, 429, 500+ (superset of OTLP's 429/502/503/504)
+        // Resolve the OTLP path against the page origin so telemetry goes through the same
+        // origin the user navigated to, avoiding cross-origin issues. The gateway sends a
+        // relative path (e.g. "/app/_otlp"); make it absolute against HostEnvironment.BaseAddress.
+        var baseAddress = new Uri(builder.HostEnvironment.BaseAddress);
+        var otlpEndpoint = new Uri(baseAddress, $"{otlpPathBase}/");
+
+        // Build a resilience pipeline for OTLP export retries.
+        // The OTel SDK's built-in retry uses Thread.Sleep which would deadlock on WASM,
+        // so we handle retries ourselves with async-safe exponential backoff.
         var pipeline = new ResiliencePipelineBuilder<HttpResponseMessage>()
             .AddRetry(new HttpRetryStrategyOptions
             {
@@ -60,14 +71,11 @@ public static class BlazorClientExtensions
             })
             .Build();
 
-        // Resolve the OTLP path against the page's origin so telemetry goes through
-        // the same origin the user navigated to, avoiding cross-origin issues.
-        var baseAddress = new Uri(builder.HostEnvironment.BaseAddress);
-        var otlpEndpoint = new Uri(baseAddress, $"{otlpPathBase}/");
-
         // Wire HttpClientFactory for all OTLP exporter instances via IPostConfigureOptions.
-        // This runs during options resolution for all 3 signals (traces, metrics, logging),
-        // and has access to the DI container to resolve ILoggerFactory.
+        // The fire-and-forget handler works around the OTel SDK's sync-over-async deadlock
+        // on WASM: OtlpExportClient.SendHttpRequest() calls SendAsync().GetAwaiter().GetResult()
+        // which blocks the single WASM thread. Our handler returns 200 immediately to unblock
+        // the SDK, then fires the real request with retries in the background.
         builder.Services.AddSingleton<IPostConfigureOptions<OtlpExporterOptions>>(sp =>
         {
             var logger = sp.GetRequiredService<ILoggerFactory>().CreateLogger("Aspire.OtlpExport");
@@ -81,8 +89,6 @@ public static class BlazorClientExtensions
         {
             logging.IncludeFormattedMessage = true;
             logging.IncludeScopes = true;
-            // Use a fixed instanceId so all browser tabs report as a single service instance
-            // in the dashboard rather than spawning separate entries per tab.
             logging.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(serviceName, serviceInstanceId: serviceName));
             logging.AddOtlpExporter(o => o.Endpoint = new Uri(otlpEndpoint, "v1/logs"));
         });

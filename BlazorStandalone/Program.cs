@@ -9,29 +9,26 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-// In WebAssembly, environment variables are injected via JS initializer into MonoConfig.environmentVariables.
-// They are available via Environment.GetEnvironmentVariable() but NOT automatically in IConfiguration.
-// Service Discovery reads from IConfiguration, so we add environment variables to configuration.
+// The gateway injects service endpoints and OTLP settings as environment variables
+// (via the ClientServiceDefaults JS initializer). Service discovery reads from
+// IConfiguration, so bridge those environment variables into configuration.
 builder.Configuration.AddEnvironmentVariables();
 
-// Add Aspire service defaults (OpenTelemetry, service discovery, resilience)
+// Add Aspire client service defaults (OpenTelemetry + service discovery).
 builder.AddBlazorClientServiceDefaults();
 
-// Default HttpClient for the app
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 
-// Named HttpClient for the weather API - uses service discovery to resolve "weatherapi"
-builder.Services.AddHttpClient("weatherapi", client =>
+// Named HttpClient for the weather API, resolved through Aspire service discovery.
+builder.Services.AddHttpClient("apiservice", client =>
 {
-    // Use service discovery - this will be resolved via configuration
-    client.BaseAddress = new Uri("https+http://weatherapi");
+    client.BaseAddress = new Uri("https+http://apiservice");
 });
 
 var host = builder.Build();
 
-// WebAssembly does not support IHostedService, so TelemetryHostedService is never started.
-// We must force initialization of MeterProvider and TracerProvider manually.
-// See: https://github.com/dotnet/aspire/issues/2816
+// WebAssembly does not run IHostedService, so the OpenTelemetry providers are never
+// started automatically. Resolve them once to force initialization.
 _ = host.Services.GetService<MeterProvider>();
 _ = host.Services.GetService<TracerProvider>();
 

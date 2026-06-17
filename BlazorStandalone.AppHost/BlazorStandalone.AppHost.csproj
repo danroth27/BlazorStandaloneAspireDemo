@@ -1,23 +1,23 @@
-<Project Sdk="Aspire.AppHost.Sdk/13.5.0-preview.1.26277.21">
+<Project Sdk="Aspire.AppHost.Sdk/13.4.5">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
-    <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
     <IsAspireHost>true</IsAspireHost>
+    <!-- AddBlazorWasmProject/AddBlazorGateway are experimental in the preview Blazor integration. -->
     <NoWarn>$(NoWarn);ASPIREBLAZOR001</NoWarn>
-    <UserSecretsId>e9c4a2f1-b3d5-4e6a-9f8b-1c2d3e4f5a6b</UserSecretsId>
+    <UserSecretsId>e0ef506e-f5c3-4687-9e01-056c93fcbda2</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Aspire.Hosting" Version="13.5.0-preview.1.26277.21" />
-    <PackageReference Include="Aspire.Hosting.Blazor" Version="13.5.0-preview.1.26277.21" />
+    <!-- The Blazor + Aspire integration currently ships only as a preview package. -->
+    <PackageReference Include="Aspire.Hosting.Blazor" Version="13.4.5-preview.1.26316.12" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\BlazorStandalone.WeatherApi\BlazorStandalone.WeatherApi.csproj" />
-    <!-- WASM project reference needed for IProjectMetadata discovery by AddBlazorWasmProject -->
+    <ProjectReference Include="..\BlazorStandalone.ApiService\BlazorStandalone.ApiService.csproj" />
     <ProjectReference Include="..\BlazorStandalone\BlazorStandalone.csproj" />
   </ItemGroup>
 

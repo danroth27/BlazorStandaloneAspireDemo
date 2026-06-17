@@ -1,16 +1,17 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-var weatherApi = builder.AddProject<Projects.BlazorStandalone_WeatherApi>("weatherapi");
+var apiService = builder.AddProject<Projects.BlazorStandalone_ApiService>("apiservice")
+    .WithHttpHealthCheck("/health");
 
-// Register the standalone Blazor WASM app as a resource.
+// Register the standalone Blazor WebAssembly app as a resource.
 // The resource name becomes the URL path prefix (e.g., "app" -> served at /app/).
 var blazorApp = builder.AddBlazorWasmProject<Projects.BlazorStandalone>("app")
-    .WithReference(weatherApi);
+    .WithReference(apiService);
 
-// The Blazor Gateway serves WASM static files and proxies API/OTLP traffic.
-var gateway = builder.AddBlazorGateway("gateway")
+// The Blazor Gateway serves the WASM static files and proxies API/OTLP traffic.
+builder.AddBlazorGateway("gateway")
     .WithExternalHttpEndpoints()
-    .WithOtlpExporter(OtlpProtocol.HttpProtobuf)
+    .WithOtlpExporter()
     .WithBlazorClientApp(blazorApp);
 
 builder.Build().Run();

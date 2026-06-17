@@ -1,9 +1,12 @@
+// Licensed to the .NET Foundation under one or more agreements.
+// The .NET Foundation licenses this file to you under the MIT license.
+
 using System.Net;
 using System.Net.Http.Headers;
 using Microsoft.Extensions.Logging;
 using Polly;
 
-namespace Microsoft.Extensions.Hosting;
+namespace BlazorStandalone.ClientServiceDefaults;
 
 /// <summary>
 /// A DelegatingHandler that works around the OTel SDK's sync-over-async
@@ -24,11 +27,7 @@ internal sealed class BackgroundExportHandler(
         var snapshot = RequestSnapshot.Capture(request);
 
         // Send the real request with retries in the background.
-        // Use CancellationToken.None since this work is intentionally detached
-        // from the caller — the SDK disposes the request immediately after
-        // .GetResult() returns, and we want the background send to complete
-        // even if the export pipeline's token is cancelled.
-        _ = SendWithRetryAsync(snapshot, CancellationToken.None);
+        _ = SendWithRetryAsync(snapshot, cancellationToken);
 
         // Return 200 immediately so the SDK's sync .GetResult() unblocks.
         return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));

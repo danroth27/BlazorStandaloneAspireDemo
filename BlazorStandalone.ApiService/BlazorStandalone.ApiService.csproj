@@ -2,12 +2,16 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\BlazorStandalone.ServiceDefaults\BlazorStandalone.ServiceDefaults.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.8" />
   </ItemGroup>
 
 </Project>
