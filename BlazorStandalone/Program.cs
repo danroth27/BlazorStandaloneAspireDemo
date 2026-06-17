@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.Hosting;
-using OpenTelemetry.Metrics;
-using OpenTelemetry.Trace;
 using BlazorStandalone;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
@@ -26,10 +24,5 @@ builder.Services.AddHttpClient("apiservice", client =>
 });
 
 var host = builder.Build();
-
-// WebAssembly does not run IHostedService, so the OpenTelemetry providers are never
-// started automatically. Resolve them once to force initialization.
-_ = host.Services.GetService<MeterProvider>();
-_ = host.Services.GetService<TracerProvider>();
 
 await host.RunAsync();

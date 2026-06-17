@@ -168,18 +168,15 @@ sequenceDiagram
     GW-->>WASM: 200 OK
 ```
 
-**Important:** WebAssembly doesn't automatically start `IHostedService`, so the telemetry providers must be manually initialized:
+**Note:** As of .NET 11 ([dotnet/aspnetcore#63814](https://github.com/dotnet/aspnetcore/pull/63814)), `WebAssemblyHost` runs `IHostedService` implementations on startup. OpenTelemetry's `TelemetryHostedService` therefore initializes the tracer and meter providers automatically — no manual `GetService<MeterProvider>()` / `GetService<TracerProvider>()` call is required:
 
 ```csharp
 var host = builder.Build();
 
-// Force initialization of OpenTelemetry providers
-// Required because IHostedService doesn't run in WebAssembly
-_ = host.Services.GetService<MeterProvider>();
-_ = host.Services.GetService<TracerProvider>();
-
 await host.RunAsync();
 ```
+
+> On .NET 10 (e.g. the Aspire `playground/BlazorStandalone` sample) WASM does **not** run hosted services, so those samples still force provider initialization manually.
 
 ## Project Structure
 
@@ -237,8 +234,8 @@ The Blazor hosting integration is preview-only. The latest publicly published ve
 | `Aspire.Hosting.Blazor` | `13.4.5-preview.1.26316.12` | nuget.org |
 | `Microsoft.AspNetCore.Components.WebAssembly` | `11.0.0-preview.5.*` | nuget.org |
 
-Because Preview 5 predates the upstream "align gateway and templates" work, two minimal
-adjustments are applied versus a naive scaffold. Both are bridges for known preview-era gaps
+Because Preview 5 predates the upstream "align gateway and templates" work, three minimal
+adjustments are applied versus a naive scaffold. All are bridges for known preview-era gaps
 and can be reverted once the fixes ship publicly:
 
 1. **AppHost `launchSettings.json` adds `ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL`.** The
@@ -260,6 +257,11 @@ References:
 - Official sample: [`microsoft/aspire` · `playground/BlazorStandalone`](https://github.com/microsoft/aspire/tree/main/playground/BlazorStandalone)
 - Gateway/config rework: [`microsoft/aspire#17384`](https://github.com/microsoft/aspire/pull/17384)
 - Template/gateway alignment (post-Preview-5): [`dotnet/aspnetcore#67048`](https://github.com/dotnet/aspnetcore/pull/67048)
+
+Conversely, **.NET 11 removes** one workaround that earlier samples needed: `WebAssemblyHost`
+now runs `IHostedService` ([dotnet/aspnetcore#63814](https://github.com/dotnet/aspnetcore/pull/63814)),
+so OpenTelemetry's providers start automatically and there's no manual `GetService<MeterProvider>()`
+/ `GetService<TracerProvider>()` call. The .NET 10 playground sample still carries that workaround.
 
 ## Key Differences from Hosted Blazor
 
