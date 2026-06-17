@@ -2,7 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using BlazorStandalone.ClientServiceDefaults;
-using Microsoft.AspNetCore.Components.Infrastructure;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http.Resilience;
@@ -22,12 +21,10 @@ public static class BlazorClientExtensions
 {
     public static WebAssemblyHostBuilder AddBlazorClientServiceDefaults(this WebAssemblyHostBuilder builder)
     {
-        // Register the Blazor component metrics/tracing instruments so the framework actually
-        // records render/lifecycle measurements. Without these the subscribed meters
-        // ("Microsoft.AspNetCore.Components"*) emit nothing and no client metrics are exported.
-        ComponentsMetricsServiceCollectionExtensions.AddComponentsMetrics(builder.Services);
-        ComponentsMetricsServiceCollectionExtensions.AddComponentsTracing(builder.Services);
-
+        // Component metrics/tracing instruments are registered automatically by
+        // WebAssemblyHostBuilder when System.Diagnostics.Metrics support is enabled
+        // (see BlazorStandalone.csproj <MetricsSupport>), so no explicit AddComponentsMetrics
+        // call is needed here.
         builder.ConfigureBlazorClientOpenTelemetry();
 
         builder.Services.AddServiceDiscovery();
