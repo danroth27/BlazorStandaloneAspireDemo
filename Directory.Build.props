@@ -1,0 +1,13 @@
+<Project>
+  <PropertyGroup>
+    <AspireVersion>13.5.0-preview.1.26277.21</AspireVersion>
+    <ServiceDiscoveryVersion>10.7.0-preview.1.26272.1</ServiceDiscoveryVersion>
+    <OpenTelemetryVersion>1.10.0</OpenTelemetryVersion>
+    <OpenTelemetryHttpInstrumentationVersion>1.10.0</OpenTelemetryHttpInstrumentationVersion>
+    <OpenTelemetryAspNetCoreVersion>1.10.1</OpenTelemetryAspNetCoreVersion>
+    <OpenTelemetryRuntimeVersion>1.10.0</OpenTelemetryRuntimeVersion>
+    <MicrosoftExtensionsVersion>10.0.0</MicrosoftExtensionsVersion>
+    <HealthChecksApplicationStatusVersion>8.0.1</HealthChecksApplicationStatusVersion>
+    <PollyVersion>8.5.0</PollyVersion>
+  </PropertyGroup>
+</Project>

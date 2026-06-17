@@ -1,0 +1,6 @@
+{
+  "appHost": {
+    "path": "BlazorStandalone.AppHost.csproj"
+  },
+  "channel": "daily"
+}
