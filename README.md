@@ -241,22 +241,42 @@ and can be reverted once the fixes ship publicly:
 1. **AppHost `launchSettings.json` adds `ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL`.** The
    `aspire-starter` template only emits the gRPC OTLP endpoint, but WASM clients export via
    HTTP/protobuf, so the gateway needs the dashboard's **HTTP** OTLP endpoint to proxy client
-   telemetry. (The official playground `launchSettings.json` includes this.)
+   telemetry. (The official playground `launchSettings.json` includes this.) On the public
+   `13.4.5-preview` package, `BlazorGatewayExtensions.ResolveHttpOtlpEndpointUrl` only reads this
+   config key; without it the gateway logs *"no dashboard HTTP endpoint could be resolved"* and
+   emits no client OTLP config. The post-fix resolver on `microsoft/aspire` `main` first looks the
+   dashboard's `otlp-http` endpoint up from the application model (handling randomized ports), so
+   the manual entry can be dropped once that ships. _Tracking:_
+   [dotnet/aspnetcore#64574](https://github.com/dotnet/aspnetcore/issues/64574) (WASM service
+   defaults epic), [microsoft/aspire#15691](https://github.com/microsoft/aspire/pull/15691) /
+   [#17384](https://github.com/microsoft/aspire/pull/17384) (gateway integration + follow-up).
 
 2. **Gateway self-export uses gRPC (`WithOtlpExporter()`), not `HttpProtobuf`.** Works around a
    circular `ILoggerFactory` dependency that crashes the generated `Gateway.cs` on the public
-   `13.4.5-preview` package. Client telemetry is unaffected (proxied over HTTP/protobuf).
+   `13.4.5-preview` package (the gateway's own `OtlpLogExporter` → `IHttpClientFactory` →
+   `AddStandardResilienceHandler` Polly telemetry → `ILoggerFactory` while it is still being
+   built). Client telemetry is unaffected (proxied over HTTP/protobuf). _Tracking:_ no dedicated
+   public issue located as of this writing — reproduced locally on
+   `Aspire.Hosting.Blazor 13.4.5-preview.1.26316.12`; the playground avoids it only by building
+   against a fixed nightly.
 
 3. **`ClientServiceDefaults/Extensions.cs` resolves the OTLP endpoint against
    `HostEnvironment.BaseAddress`** and sets explicit `v1/logs` / `v1/traces` / `v1/metrics`
    endpoints — matching the post-Preview-5 template. The Preview 5 `dotnet new
    blazor-wasm-servicedefaults` template called bare `AddOtlpExporter()`, which does not handle
-   the relative `/app/_otlp` endpoint the gateway emits.
+   the relative `/app/_otlp` endpoint the gateway emits. _Tracking:_
+   [dotnet/aspnetcore#67048](https://github.com/dotnet/aspnetcore/pull/67048) (template/gateway
+   alignment, post-Preview-5), [#64574](https://github.com/dotnet/aspnetcore/issues/64574) (epic),
+   and the root OTel-in-WASM issue
+   [open-telemetry/opentelemetry-dotnet#2816](https://github.com/open-telemetry/opentelemetry-dotnet/issues/2816).
 
 References:
 - Official sample: [`microsoft/aspire` · `playground/BlazorStandalone`](https://github.com/microsoft/aspire/tree/main/playground/BlazorStandalone)
+- WASM service defaults template epic: [`dotnet/aspnetcore#64574`](https://github.com/dotnet/aspnetcore/issues/64574)
 - Gateway/config rework: [`microsoft/aspire#17384`](https://github.com/microsoft/aspire/pull/17384)
 - Template/gateway alignment (post-Preview-5): [`dotnet/aspnetcore#67048`](https://github.com/dotnet/aspnetcore/pull/67048)
+- Hosted services in `WebAssemblyHost`: [`dotnet/aspnetcore#63814`](https://github.com/dotnet/aspnetcore/pull/63814)
+- Root OpenTelemetry-in-WASM issue: [`open-telemetry/opentelemetry-dotnet#2816`](https://github.com/open-telemetry/opentelemetry-dotnet/issues/2816)
 
 Conversely, **.NET 11 removes** one workaround that earlier samples needed: `WebAssemblyHost`
 now runs `IHostedService` ([dotnet/aspnetcore#63814](https://github.com/dotnet/aspnetcore/pull/63814)),
