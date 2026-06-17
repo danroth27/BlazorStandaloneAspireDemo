@@ -2,20 +2,18 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 
 using BlazorStandalone.ClientServiceDefaults;
-using Microsoft.AspNetCore.Components.Infrastructure;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
-using OpenTelemetry;
 using OpenTelemetry.Exporter;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Polly;
-using Polly.Retry;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -23,9 +21,6 @@ public static class BlazorClientExtensions
 {
     public static WebAssemblyHostBuilder AddBlazorClientServiceDefaults(this WebAssemblyHostBuilder builder)
     {
-        ComponentsMetricsServiceCollectionExtensions.AddComponentsMetrics(builder.Services);
-        ComponentsMetricsServiceCollectionExtensions.AddComponentsTracing(builder.Services);
-
         builder.ConfigureBlazorClientOpenTelemetry();
 
         builder.Services.AddServiceDiscovery();
@@ -76,14 +71,17 @@ public static class BlazorClientExtensions
         // on WASM: OtlpExportClient.SendHttpRequest() calls SendAsync().GetAwaiter().GetResult()
         // which blocks the single WASM thread. Our handler returns 200 immediately to unblock
         // the SDK, then fires the real request with retries in the background.
-        builder.Services.AddSingleton<IPostConfigureOptions<OtlpExporterOptions>>(sp =>
-        {
-            var logger = sp.GetRequiredService<ILoggerFactory>().CreateLogger("Aspire.OtlpExport");
-            return new PostConfigureOptions<OtlpExporterOptions>(null, o =>
+        //
+        // NOTE (.NET 11 Preview 5 workaround): the handler uses NullLogger rather than resolving
+        // the app's ILoggerFactory. The OTLP *log* exporter builds its HttpClient while the
+        // ILoggerFactory is still being constructed, so resolving ILoggerFactory here throws
+        // CircularDependencyException (dotnet/aspnetcore#67032). App log telemetry still flows via
+        // logging.AddOtlpExporter below; only this handler's retry diagnostics are not logged.
+        builder.Services.AddSingleton<IPostConfigureOptions<OtlpExporterOptions>>(
+            new PostConfigureOptions<OtlpExporterOptions>(null, o =>
             {
-                o.HttpClientFactory = () => new HttpClient(new BackgroundExportHandler(pipeline, logger));
-            });
-        });
+                o.HttpClientFactory = () => new HttpClient(new BackgroundExportHandler(pipeline, NullLogger.Instance));
+            }));
 
         builder.Logging.AddOpenTelemetry(logging =>
         {

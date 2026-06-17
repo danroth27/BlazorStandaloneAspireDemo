@@ -234,7 +234,7 @@ The Blazor hosting integration is preview-only. The latest publicly published ve
 | `Aspire.Hosting.Blazor` | `13.4.5-preview.1.26316.12` | nuget.org |
 | `Microsoft.AspNetCore.Components.WebAssembly` | `11.0.0-preview.5.*` | nuget.org |
 
-Because Preview 5 predates the upstream "align gateway and templates" work, three minimal
+Because Preview 5 predates the upstream "align gateway and templates" work, four minimal
 adjustments are applied versus a naive scaffold. All are bridges for known preview-era gaps
 and can be reverted once the fixes ship publicly:
 
@@ -274,6 +274,18 @@ and can be reverted once the fixes ship publicly:
    alignment, post-Preview-5), [#64574](https://github.com/dotnet/aspnetcore/issues/64574) (epic),
    and the root OTel-in-WASM issue
    [open-telemetry/opentelemetry-dotnet#2816](https://github.com/open-telemetry/opentelemetry-dotnet/issues/2816).
+
+4. **`ClientServiceDefaults/Extensions.cs` gives the OTLP export handler a `NullLogger` instead of
+   resolving the app's `ILoggerFactory`.** On Preview 5, the OTLP *log* exporter builds its
+   `HttpClient` (via the `IPostConfigureOptions<OtlpExporterOptions>` `HttpClientFactory`) while the
+   `ILoggerFactory` is still being constructed, so resolving `ILoggerFactory` there throws
+   `CircularDependencyException` and the WASM app fails to boot — the **client-side** manifestation
+   of [dotnet/aspnetcore#67032](https://github.com/dotnet/aspnetcore/issues/67032). App log
+   telemetry still flows (via `logging.AddOtlpExporter`); only the handler's own retry diagnostics
+   are not logged. Verified end-to-end with a headless browser: the app boots and the Weather page
+   loads forecasts via service discovery with no `CircularDependencyException`. The official
+   post-#67048 template still resolves `ILoggerFactory`; it relies on a post-Preview-5 runtime fix,
+   so this `NullLogger` shim can be reverted once that runtime ships.
 
 References:
 - Official sample: [`microsoft/aspire` · `playground/BlazorStandalone`](https://github.com/microsoft/aspire/tree/main/playground/BlazorStandalone)
