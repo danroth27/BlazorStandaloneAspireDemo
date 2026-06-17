@@ -102,7 +102,13 @@ public static class BlazorClientExtensions
                 metrics.AddMeter("Microsoft.AspNetCore.Components");
                 metrics.AddMeter("Microsoft.AspNetCore.Components.Lifecycle");
                 metrics.AddHttpClientInstrumentation();
-                metrics.AddOtlpExporter(o => o.Endpoint = new Uri(otlpEndpoint, "v1/metrics"));
+                // Export metrics every 5s instead of the SDK default of 60s so client
+                // metrics show up quickly in the dashboard during the demo.
+                metrics.AddOtlpExporter((exporter, reader) =>
+                {
+                    exporter.Endpoint = new Uri(otlpEndpoint, "v1/metrics");
+                    reader.PeriodicExportingMetricReaderOptions.ExportIntervalMilliseconds = 5000;
+                });
             })
             .WithTracing(tracing =>
             {

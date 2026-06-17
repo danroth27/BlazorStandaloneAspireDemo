@@ -219,6 +219,10 @@ BlazorStandalone/
 5. **View telemetry** in the Aspire dashboard:
    - **Structured Logs** — logs from `gateway` (server) and `app` (WASM client)
    - **Traces** — distributed traces: `app` → `gateway` → `apiservice`
+   - **Metrics** — client metrics export every **5s** (set via
+     `PeriodicExportingMetricReaderOptions.ExportIntervalMilliseconds` in
+     `ClientServiceDefaults/Extensions.cs`) so they appear quickly during a live demo, rather than
+     the OpenTelemetry SDK default of 60s.
 
 ## Versions & preview notes
 
