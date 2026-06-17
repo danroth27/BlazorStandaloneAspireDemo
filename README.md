@@ -255,10 +255,15 @@ and can be reverted once the fixes ship publicly:
    circular `ILoggerFactory` dependency that crashes the generated `Gateway.cs` on the public
    `13.4.5-preview` package (the gateway's own `OtlpLogExporter` → `IHttpClientFactory` →
    `AddStandardResilienceHandler` Polly telemetry → `ILoggerFactory` while it is still being
-   built). Client telemetry is unaffected (proxied over HTTP/protobuf). _Tracking:_ no dedicated
-   public issue located as of this writing — reproduced locally on
-   `Aspire.Hosting.Blazor 13.4.5-preview.1.26316.12`; the playground avoids it only by building
-   against a fixed nightly.
+   built). Client telemetry is unaffected (proxied over HTTP/protobuf). _Tracking:_
+   [dotnet/aspnetcore#67032](https://github.com/dotnet/aspnetcore/issues/67032) (the
+   `CircularDependencyException` — its repro explicitly includes the Aspire AppHost + standalone
+   WASM + ServiceDefaults scenario), fixed by
+   [#67048](https://github.com/dotnet/aspnetcore/pull/67048), which reworks both the client
+   `ServiceDefaults` template (see #3) **and** the gateway's own telemetry setup
+   (`BlazorGateway.cs` → `CreateSlimBuilder` + conditional `ConfigureOpenTelemetry`). The fix is
+   not yet in a public `Aspire.Hosting.Blazor` package, so the gRPC workaround remains until the
+   package bundles the post-#67048 gateway.
 
 3. **`ClientServiceDefaults/Extensions.cs` resolves the OTLP endpoint against
    `HostEnvironment.BaseAddress`** and sets explicit `v1/logs` / `v1/traces` / `v1/metrics`
@@ -275,6 +280,7 @@ References:
 - WASM service defaults template epic: [`dotnet/aspnetcore#64574`](https://github.com/dotnet/aspnetcore/issues/64574)
 - Gateway/config rework: [`microsoft/aspire#17384`](https://github.com/microsoft/aspire/pull/17384)
 - Template/gateway alignment (post-Preview-5): [`dotnet/aspnetcore#67048`](https://github.com/dotnet/aspnetcore/pull/67048)
+- ILoggerFactory `CircularDependencyException` (client + gateway): [`dotnet/aspnetcore#67032`](https://github.com/dotnet/aspnetcore/issues/67032)
 - Hosted services in `WebAssemblyHost`: [`dotnet/aspnetcore#63814`](https://github.com/dotnet/aspnetcore/pull/63814)
 - Root OpenTelemetry-in-WASM issue: [`open-telemetry/opentelemetry-dotnet#2816`](https://github.com/open-telemetry/opentelemetry-dotnet/issues/2816)
 
