@@ -1,4 +1,4 @@
-<Project Sdk="Aspire.AppHost.Sdk/13.4.5">
+<Project Sdk="Aspire.AppHost.Sdk/13.4.6">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -13,7 +13,7 @@
 
   <ItemGroup>
     <!-- The Blazor + Aspire integration currently ships only as a preview package. -->
-    <PackageReference Include="Aspire.Hosting.Blazor" Version="13.4.5-preview.1.26316.12" />
+    <PackageReference Include="Aspire.Hosting.Blazor" Version="13.4.6-preview.1.26319.6" />
   </ItemGroup>
 
   <ItemGroup>

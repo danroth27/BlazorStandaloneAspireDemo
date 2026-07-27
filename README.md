@@ -226,7 +226,7 @@ BlazorStandalone/
 
 ## Versions & preview notes
 
-This sample targets **Aspire 13.4** (public nuget.org packages) with a **.NET 11 Preview 5**
+This sample targets **Aspire 13.4** (public nuget.org packages) with a **.NET 11 Preview 6**
 Blazor WebAssembly client. The server projects (AppHost, ApiService, ServiceDefaults) target
 `net10.0`; the WASM client and its ClientServiceDefaults target `net11.0`.
 
@@ -234,11 +234,17 @@ The Blazor hosting integration is preview-only. The latest publicly published ve
 
 | Package | Version | Source |
 |---------|---------|--------|
-| `Aspire.AppHost.Sdk` | `13.4.5` | nuget.org |
-| `Aspire.Hosting.Blazor` | `13.4.5-preview.1.26316.12` | nuget.org |
-| `Microsoft.AspNetCore.Components.WebAssembly` | `11.0.0-preview.5.*` | nuget.org |
+| `Aspire.AppHost.Sdk` | `13.4.6` | nuget.org |
+| `Aspire.Hosting.Blazor` | `13.4.6-preview.1.26319.6` | nuget.org |
+| `Microsoft.AspNetCore.Components.WebAssembly` | `11.0.0-preview.6.*` | nuget.org |
 
-Because Preview 5 predates the upstream "align gateway and templates" work, five minimal
+> **Re-verify the preview workarounds against these versions.** The adjustments below were
+> characterized against Preview 5 + `Aspire.Hosting.Blazor 13.4.5-preview`. The sample has since
+> been bumped to **.NET 11 Preview 6** and **Aspire 13.4.6**, and it builds clean; some of the
+> upstream fixes referenced below may already be in these packages, so each workaround should be
+> re-confirmed (and dropped where no longer needed) with a live run.
+
+Because the preview packages predate the upstream "align gateway and templates" work, five minimal
 adjustments are applied versus a naive scaffold. All are bridges for known preview-era gaps
 and can be reverted once the fixes ship publicly:
 
