@@ -16,11 +16,12 @@
            1. Microsoft.NET.Sdk.BlazorWebAssembly.Current.props defaults
               'BlazorWebAssemblyDiagnosticsEnabled' but the three conditions gate on
               'BlazorWasmDiagnosticsEnabled' - the names don't match, so the default never fires.
+              Fixed on dotnet/sdk main by PR #55447 (2026-07-24), after Preview 6 was cut.
            2. Those conditions are evaluated in Sdk.props, which is imported before this project
               body, so setting either name here has no effect. Only -p: or Directory.Build.props
-              would reach it.
-         Setting the individual switches explicitly works in all cases, so do that until the
-         SDK issue is fixed. HttpActivityPropagationSupport already emits the
+              would reach it. Still unfixed.
+         Setting the individual switches explicitly works in all cases, so do that until a preview
+         with the fix ships. HttpActivityPropagationSupport already emits the
          System.Net.Http.EnableActivityPropagation runtime config option, so no separate
          RuntimeHostConfigurationOption entry is needed. -->
     <MetricsSupport>true</MetricsSupport>

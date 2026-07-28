@@ -273,14 +273,32 @@ gaps and can be reverted once the fixes ship publicly:
    `ILoggerFactory` while it is still being built). Client telemetry is unaffected (proxied over
    HTTP/protobuf). _Still required on 13.4.6_ — verified two ways: `Scripts/Gateway.cs` in
    `Aspire.Hosting.Blazor` 13.4.6-preview is **byte-identical** to 13.4.5 (same SHA-256) and still
-   uses `WebApplication.CreateBuilder` + unconditional `AddServiceDefaults()`, i.e. it does not
-   contain the post-[#67048](https://github.com/dotnet/aspnetcore/pull/67048) rework; and
-   switching to `.WithOtlpExporter(OtlpProtocol.HttpProtobuf)` makes the gateway resource exit
-   immediately with *"A circular dependency was detected for the service of type
-   'Microsoft.Extensions.Logging.ILoggerFactory'"*. _Tracking:_
-   [dotnet/aspnetcore#67032](https://github.com/dotnet/aspnetcore/issues/67032), fixed for the
-   client by [#67048](https://github.com/dotnet/aspnetcore/pull/67048) but not yet bundled into a
-   public `Aspire.Hosting.Blazor` gateway.
+   uses `WebApplication.CreateBuilder` + unconditional `AddServiceDefaults()`; and switching to
+   `.WithOtlpExporter(OtlpProtocol.HttpProtobuf)` makes the gateway resource exit immediately with
+   *"A circular dependency was detected for the service of type
+   'Microsoft.Extensions.Logging.ILoggerFactory'"*.
+
+   **Why the [#67048](https://github.com/dotnet/aspnetcore/pull/67048) gateway fix doesn't help
+   here:** there are currently *two forked gateway implementations*.
+   [#67048](https://github.com/dotnet/aspnetcore/pull/67048) reworked
+   `src/Components/Gateway/src/BlazorGateway.cs` (`CreateSlimBuilder` + `ConfigureOpenTelemetry`
+   gated on `options.Telemetry.Enabled`), which ships in the **`Microsoft.AspNetCore.Components.Gateway`**
+   package. But Aspire does not run that gateway. `Aspire.Hosting.Blazor` ships its own
+   [`Scripts/Gateway.cs.in`](https://github.com/microsoft/aspire/blob/main/src/Aspire.Hosting.Blazor/Scripts/Gateway.cs.in)
+   *source template* — a self-contained file-based app (`#:sdk` / `#:package` directives) that
+   hand-rolls its own `AddServiceDefaults`/`ConfigureOpenTelemetry` — which the AppHost writes to
+   disk and `dotnet run`s at startup. That copy never received the #67048 rework, and is still
+   unchanged on `microsoft/aspire` `main`.
+
+   _Tracking:_ the crash itself is
+   [microsoft/aspire#18272](https://github.com/microsoft/aspire/issues/18272) (open, no milestone),
+   which root-causes the same `ILoggerFactory` cycle. Unifying the two implementations — dropping
+   `Gateway.cs.in` in favor of the precompiled ASP.NET Core gateway — is tracked by
+   [dotnet/aspnetcore#67095](https://github.com/dotnet/aspnetcore/issues/67095) (open, milestone
+   **.NET 12 Planning**), which depends on
+   [#67094](https://github.com/dotnet/aspnetcore/issues/67094) publishing the gateway as a
+   redistributable artifact. So expect this workaround to be needed for the whole .NET 11 cycle.
+   Background: [dotnet/aspnetcore#67032](https://github.com/dotnet/aspnetcore/issues/67032).
 
 3. **`BlazorStandalone.csproj` enables WASM runtime diagnostics feature switches.** Blazor
    WebAssembly trims diagnostics by default, so without these the client emits **no metrics and no
@@ -299,19 +317,29 @@ gaps and can be reverted once the fixes ship publicly:
    - **Name mismatch.** `Microsoft.NET.Sdk.BlazorWebAssembly.Current.props` defaults
      `BlazorWebAssemblyDiagnosticsEnabled` to `true`, but the three switch conditions on the very
      next lines gate on `BlazorWasmDiagnosticsEnabled` (`Wasm` vs `WebAssembly`). The default
-     never fires.
+     never fires. **Fixed after Preview 6** — see _Status_ below.
    - **Evaluation order.** Those conditions are evaluated in `Sdk.props`, which is imported
      *before* the project body, so setting either property name in a `.csproj` has no effect.
      Only a global property (`-p:BlazorWasmDiagnosticsEnabled=true`) or `Directory.Build.props`
-     reaches them.
+     reaches them. **Still unfixed.**
 
    Measured on a stock `dotnet new blazorwasm` app under Preview 6 — `Metrics`, `EventSource` and
    `ActivityProp` are all `False` by default, `False` with either property set in the csproj, and
    `True` only with `-p:` or with the individual switches set explicitly. So the explicit switches
    stay. The separate `RuntimeHostConfigurationOption` for
    `System.Net.Http.EnableActivityPropagation` **was removed** — `HttpActivityPropagationSupport`
-   already emits it. _Tracking:_
-   [dotnet/aspnetcore#64575](https://github.com/dotnet/aspnetcore/issues/64575).
+   already emits it.
+
+   _Status:_ the feature was added by
+   [dotnet/sdk#54824](https://github.com/dotnet/sdk/pull/54824) (2026-06-18) with the name
+   mismatch, and **the mismatch is already fixed** on `dotnet/sdk` `main` by
+   [#55447](https://github.com/dotnet/sdk/pull/55447) (merged 2026-07-24) — after Preview 6 was
+   cut, so it is not in any public preview yet. Once a preview with that fix ships, the three
+   switches here can be deleted (they'd become the default). Note that #55447's regression test
+   sets the property via `/p:`, so the evaluation-order limitation above is not covered by it: the
+   documented opt-out (`BlazorWebAssemblyDiagnosticsEnabled=false`) still won't work from a
+   `.csproj`, only from `Directory.Build.props` or the command line.
+   Related: [dotnet/aspnetcore#64575](https://github.com/dotnet/aspnetcore/issues/64575).
 
 ### Workarounds dropped after re-verification
 
