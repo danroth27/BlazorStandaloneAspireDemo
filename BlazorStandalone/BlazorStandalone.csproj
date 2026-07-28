@@ -8,18 +8,25 @@
     <StaticWebAssetSpaFallbackEnabled>true</StaticWebAssetSpaFallbackEnabled>
     <!-- WASM runtime diagnostics feature switches. These default to OFF (trimmed) in Blazor
          WebAssembly, so without them System.Diagnostics.Metrics instruments are no-ops and
-         HttpClient never creates Activity spans, leaving the client with no metrics/traces. -->
+         HttpClient never creates Activity spans, leaving the client with no metrics/traces.
+
+         .NET 11 Preview 6 added a BlazorWasmDiagnosticsEnabled property intended to turn all
+         three on by default, but it does not work in Preview 6 (verified by inspecting the
+         generated runtimeconfig.json):
+           1. Microsoft.NET.Sdk.BlazorWebAssembly.Current.props defaults
+              'BlazorWebAssemblyDiagnosticsEnabled' but the three conditions gate on
+              'BlazorWasmDiagnosticsEnabled' - the names don't match, so the default never fires.
+           2. Those conditions are evaluated in Sdk.props, which is imported before this project
+              body, so setting either name here has no effect. Only -p: or Directory.Build.props
+              would reach it.
+         Setting the individual switches explicitly works in all cases, so do that until the
+         SDK issue is fixed. HttpActivityPropagationSupport already emits the
+         System.Net.Http.EnableActivityPropagation runtime config option, so no separate
+         RuntimeHostConfigurationOption entry is needed. -->
     <MetricsSupport>true</MetricsSupport>
     <EventSourceSupport>true</EventSourceSupport>
     <HttpActivityPropagationSupport>true</HttpActivityPropagationSupport>
   </PropertyGroup>
-
-  <!-- Runtime configuration option for HttpClient Activity propagation in WASM. -->
-  <ItemGroup>
-    <RuntimeHostConfigurationOption Include="System.Net.Http.EnableActivityPropagation">
-      <Value>true</Value>
-    </RuntimeHostConfigurationOption>
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="11.0.0-preview.6.26359.118" />
