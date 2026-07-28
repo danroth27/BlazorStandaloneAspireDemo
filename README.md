@@ -338,7 +338,8 @@ gaps and can be reverted once the fixes ship publicly:
    switches here can be deleted (they'd become the default). Note that #55447's regression test
    sets the property via `/p:`, so the evaluation-order limitation above is not covered by it: the
    documented opt-out (`BlazorWebAssemblyDiagnosticsEnabled=false`) still won't work from a
-   `.csproj`, only from `Directory.Build.props` or the command line.
+   `.csproj`, only from `Directory.Build.props` or the command line — tracked separately by
+   [dotnet/sdk#55489](https://github.com/dotnet/sdk/issues/55489).
    Related: [dotnet/aspnetcore#64575](https://github.com/dotnet/aspnetcore/issues/64575).
 
 ### Workarounds dropped after re-verification
