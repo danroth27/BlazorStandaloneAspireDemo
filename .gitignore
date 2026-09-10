@@ -39,3 +39,4 @@ artifacts/
 # Misc
 [Tt]humbs.db
 *.DotSettings.user
+.dotnet/

@@ -182,7 +182,7 @@ await host.RunAsync();
 
 ```text
 BlazorStandalone/
-├── BlazorStandalone.AppHost/                # Aspire orchestrator (net10.0)
+├── BlazorStandalone.AppHost/                # Aspire orchestrator (net11.0)
 │   ├── AppHost.cs                               # AddBlazorWasmProject + AddBlazorGateway
 │   └── Properties/launchSettings.json           # Dashboard gRPC + HTTP OTLP endpoints
 │
@@ -197,10 +197,10 @@ BlazorStandalone/
 │   ├── BackgroundExportHandler.cs              # WASM-safe fire-and-forget OTLP export
 │   └── wwwroot/*.lib.module.js                  # JS initializer: fetches /_blazor/_configuration
 │
-├── BlazorStandalone.ServiceDefaults/        # Server-side Aspire defaults (net10.0)
+├── BlazorStandalone.ServiceDefaults/        # Server-side Aspire defaults (net11.0)
 │   └── Extensions.cs                            # Standard AddServiceDefaults()
 │
-└── BlazorStandalone.ApiService/             # Sample API (net10.0)
+└── BlazorStandalone.ApiService/             # Sample API (net11.0)
     └── Program.cs                              # Minimal API with /weatherforecast
 ```
 
@@ -228,20 +228,19 @@ BlazorStandalone/
 
 ## Versions & preview notes
 
-This sample targets **Aspire 13.4** (public nuget.org packages) with a **.NET 11 Preview 6**
-Blazor WebAssembly client. The server projects (AppHost, ApiService, ServiceDefaults) target
-`net10.0`; the WASM client and its ClientServiceDefaults target `net11.0`.
+This sample targets **Aspire 13.5.3** with a **.NET 11 RC1** Blazor WebAssembly client. All
+projects target `net11.0`.
 
 The Blazor hosting integration is preview-only. The latest publicly published versions used here:
 
 | Package | Version | Source |
 |---------|---------|--------|
-| `Aspire.AppHost.Sdk` | `13.4.6` | nuget.org |
-| `Aspire.Hosting.Blazor` | `13.4.6-preview.1.26319.6` | nuget.org |
-| `Microsoft.AspNetCore.Components.WebAssembly` | `11.0.0-preview.6.*` | nuget.org |
+| `Aspire.AppHost.Sdk` | `13.5.3` | nuget.org |
+| `Aspire.Hosting.Blazor` | `13.5.3-preview.1.26425.3` | nuget.org |
+| `Microsoft.AspNetCore.Components.WebAssembly` | `11.0.0-rc.1.26425.128` | nuget.org |
 
-> **Re-verified against these versions (Aspire CLI 13.4.6, `Aspire.Hosting.Blazor`
-> 13.4.6-preview, .NET 11 Preview 6).** The adjustments below were originally characterized
+> **Re-verified against these versions (Aspire CLI 13.5.3, `Aspire.Hosting.Blazor`
+> 13.5.3-preview, .NET 11 RC1).** The adjustments below were originally characterized
 > against Preview 5. Each one has since been re-tested with a live run; **two were dropped** and
 > the remaining three are documented with the evidence that they are still needed.
 
