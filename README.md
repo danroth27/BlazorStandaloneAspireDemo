@@ -228,21 +228,19 @@ BlazorStandalone/
 
 ## Versions & preview notes
 
-This sample targets **Aspire 13.5.3** with a **.NET 11 RC1** Blazor WebAssembly client. All
+This sample targets **Aspire 13.6 Preview 1** with a **.NET 11 RC1** Blazor WebAssembly client. All
 projects target `net11.0`.
 
-The Blazor hosting integration is preview-only. The latest publicly published versions used here:
+The Blazor hosting integration is preview-only. The Aspire versions used here are published on the
+public `dotnet9` feed configured in `NuGet.Config`:
 
 | Package | Version | Source |
 |---------|---------|--------|
-| `Aspire.AppHost.Sdk` | `13.5.3` | nuget.org |
-| `Aspire.Hosting.Blazor` | `13.5.3-preview.1.26425.3` | nuget.org |
+| `Aspire.AppHost.Sdk` | `13.6.0-preview.1.26463.6` | `dotnet9` |
+| `Aspire.Hosting.Blazor` | `13.6.0-preview.1.26463.6` | `dotnet9` |
 | `Microsoft.AspNetCore.Components.WebAssembly` | `11.0.0-rc.1.26425.128` | nuget.org |
 
-> **Re-verified against these versions (Aspire CLI 13.5.3, `Aspire.Hosting.Blazor`
-> 13.5.3-preview, .NET 11 RC1).** The adjustments below were originally characterized
-> against Preview 5. Each one has since been re-tested with a live run; **two were dropped** and
-> the remaining three are documented with the evidence that they are still needed.
+> **Package restore and CLI resource startup verified with Aspire CLI and `Aspire.Hosting.Blazor` 13.6 Preview 1.** The adjustments below were originally characterized against Preview 5; **three were dropped** and the remaining three are documented with the evidence that they are still needed.
 
 The **ClientServiceDefaults** project is now byte-identical to the
 `dotnet new blazorwasm-servicedefaults` template shipped in the Preview 6 SDK, apart from a single
