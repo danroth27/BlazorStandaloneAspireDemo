@@ -6,9 +6,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsAspireHost>true</IsAspireHost>
-    <AspireUseCliBundle>true</AspireUseCliBundle>
-    <!-- The standalone Blazor APIs are experimental. -->
-    <NoWarn>$(NoWarn);ASPIREBLAZOR001</NoWarn>
     <UserSecretsId>e0ef506e-f5c3-4687-9e01-056c93fcbda2</UserSecretsId>
   </PropertyGroup>
 
