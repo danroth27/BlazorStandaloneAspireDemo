@@ -1,4 +1,4 @@
-<Project Sdk="Aspire.AppHost.Sdk/13.6.0-preview.1.26463.6">
+<Project Sdk="Aspire.AppHost.Sdk/13.6.0">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -6,12 +6,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsAspireHost>true</IsAspireHost>
+    <AspireUseCliBundle>true</AspireUseCliBundle>
     <UserSecretsId>e0ef506e-f5c3-4687-9e01-056c93fcbda2</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
     <!-- The Blazor + Aspire integration currently ships only as a preview package. -->
-    <PackageReference Include="Aspire.Hosting.Blazor" Version="13.6.0-preview.1.26463.6" />
+    <PackageReference Include="Aspire.Hosting.Blazor" Version="13.6.0-preview.1.26475.12" />
   </ItemGroup>
 
   <ItemGroup>
