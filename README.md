@@ -230,7 +230,7 @@ Stop the app with `aspire stop` when finished.
 
 This sample uses the official **Aspire 13.6** release with a **.NET 11 RC1** Blazor WebAssembly client. All projects target `net11.0`.
 
-The Aspire CLI channel is `stable`, and `NuGet.Config` uses only nuget.org; no staging feed is required. The Blazor hosting integration included with the official 13.6 release is still preview-labeled, so its package reference retains the published preview suffix.
+The Aspire CLI channel is `stable`, and all Aspire packages are available on nuget.org; no staging feed is required. The Blazor hosting integration included with the official 13.6 release is still preview-labeled, so its package reference retains the published preview suffix.
 
 | Package | Version | Source |
 |---------|---------|--------|
