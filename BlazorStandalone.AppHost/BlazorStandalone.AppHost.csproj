@@ -1,4 +1,4 @@
-<Project Sdk="Aspire.AppHost.Sdk/13.5.3">
+<Project Sdk="Aspire.AppHost.Sdk/13.6.0">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -7,14 +7,12 @@
     <Nullable>enable</Nullable>
     <IsAspireHost>true</IsAspireHost>
     <AspireUseCliBundle>true</AspireUseCliBundle>
-    <!-- AddBlazorWasmProject/AddBlazorGateway are experimental in the preview Blazor integration. -->
-    <NoWarn>$(NoWarn);ASPIREBLAZOR001</NoWarn>
     <UserSecretsId>e0ef506e-f5c3-4687-9e01-056c93fcbda2</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- The Blazor + Aspire integration currently ships only as a preview package. -->
-    <PackageReference Include="Aspire.Hosting.Blazor" Version="13.5.3-preview.1.26425.3" />
+    <!-- The official Aspire 13.6 Blazor integration is still preview-labeled on nuget.org. -->
+    <PackageReference Include="Aspire.Hosting.Blazor" Version="13.6.0-preview.1.26479.8" />
   </ItemGroup>
 
   <ItemGroup>

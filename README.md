@@ -64,14 +64,14 @@ builder.Build().Run();
 ```
 
 > **Note on `WithOtlpExporter()`:** The official playground uses
-> `.WithOtlpExporter(OtlpProtocol.HttpProtobuf)`. On the public nuget.org
-> `Aspire.Hosting.Blazor 13.4.6-preview` package, that protocol makes the generated
+> `.WithOtlpExporter(OtlpProtocol.HttpProtobuf)`. In earlier versions of
+> `Aspire.Hosting.Blazor`, that protocol made the generated
 > `Gateway.cs` fail at startup with a circular `ILoggerFactory` dependency
 > (the gateway's own OTLP **log** exporter resolves an `IHttpClientFactory` that needs
 > `ILoggerFactory` while it is still being built). Using the default (gRPC) for the
 > gateway's **own** telemetry avoids the crash; **client** (browser) telemetry is
 > unaffected because it is proxied separately over HTTP/protobuf via `/app/_otlp/`.
-> See the "Versions & preview notes" section below.
+> See the "Versions & integration notes" section below.
 
 At startup, the hosting layer:
 1. Reads the WASM project's `staticwebassets.build.json` manifest to locate static files
@@ -207,11 +207,10 @@ BlazorStandalone/
 
 1. **Start the AppHost:**
    ```bash
-   cd BlazorStandalone.AppHost
-   dotnet run
+   aspire start
    ```
 
-2. **Open the Aspire Dashboard** using the login URL from the console output
+2. **Open the Aspire Dashboard** using the login URL from the console output. Run `aspire wait gateway` before navigating to the app.
 
 3. **Navigate to the WASM app** — click the gateway URL in the Resources page, then append `/app/`
 
@@ -225,26 +224,24 @@ BlazorStandalone/
      `ClientServiceDefaults/Extensions.cs`) so they appear quickly during a live demo, rather than
      the OpenTelemetry SDK default of 60s.
 
-## Versions & preview notes
+Stop the app with `aspire stop` when finished.
 
-This sample targets **Aspire 13.5.3** with a **.NET 11 RC1** Blazor WebAssembly client. All
-projects target `net11.0`.
+## Versions & integration notes
 
-The Blazor hosting integration is preview-only. The latest publicly published versions used here:
+This sample uses the official **Aspire 13.6** release with a **.NET 11 RC1** Blazor WebAssembly client. All projects target `net11.0`.
+
+The Aspire CLI channel is `stable`, and `NuGet.Config` uses only nuget.org; no staging feed is required. The Blazor hosting integration included with the official 13.6 release is still preview-labeled, so its package reference retains the published preview suffix.
 
 | Package | Version | Source |
 |---------|---------|--------|
-| `Aspire.AppHost.Sdk` | `13.5.3` | nuget.org |
-| `Aspire.Hosting.Blazor` | `13.5.3-preview.1.26425.3` | nuget.org |
+| `Aspire.AppHost.Sdk` | `13.6.0` | nuget.org |
+| `Aspire.Hosting.Blazor` | `13.6.0-preview.1.26479.8` | nuget.org |
 | `Microsoft.AspNetCore.Components.WebAssembly` | `11.0.0-rc.1.26425.128` | nuget.org |
 | Client `OpenTelemetry.*` | `1.19.1` (exporter/hosting), `1.19.0` (instrumentation) | nuget.org |
 
-> **Re-verified against these versions (Aspire CLI 13.5.3, `Aspire.Hosting.Blazor`
-> 13.5.3-preview, .NET 11 RC1).** The adjustments below were originally characterized
-> against Preview 5. Each one has since been re-tested with a live run; **three were dropped** and
-> the remaining three are documented with the evidence that they are still needed.
+> The adjustments below were originally characterized against Preview 5; three were dropped and the remaining three document preview-era gaps. Recheck these gaps when upgrading the hosting integration.
 
-The **ClientServiceDefaults** project tracks the code in the `dotnet new blazorwasm-servicedefaults` template shipped in the RC2 SDK, with one intentional behavior difference: a 5s metric export interval instead of the SDK default of 60s so client metrics appear on the dashboard while on stage. The WebAssembly package references remain on the publicly available RC1 release.
+The **ClientServiceDefaults** project tracks the code in the `dotnet new blazorwasm-servicedefaults` template shipped in the RC2 SDK, with one intentional behavior difference: a 5s metric export interval instead of the SDK default of 60s so client metrics appear on the dashboard while on stage. The WebAssembly package references remain on the publicly available RC1 release. The RC2 template no longer needs `BackgroundExportHandler` or its custom Polly retry pipeline with the updated OpenTelemetry packages.
 
 Three minimal adjustments remain versus a naive scaffold. All are bridges for known preview-era
 gaps and can be reverted once the fixes ship publicly:
