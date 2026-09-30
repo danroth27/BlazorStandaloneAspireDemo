@@ -64,14 +64,14 @@ builder.Build().Run();
 ```
 
 > **Note on `WithOtlpExporter()`:** The official playground uses
-> `.WithOtlpExporter(OtlpProtocol.HttpProtobuf)`. On the public nuget.org
-> `Aspire.Hosting.Blazor 13.4.6-preview` package, that protocol makes the generated
+> `.WithOtlpExporter(OtlpProtocol.HttpProtobuf)`. In earlier versions of
+> `Aspire.Hosting.Blazor`, that protocol made the generated
 > `Gateway.cs` fail at startup with a circular `ILoggerFactory` dependency
 > (the gateway's own OTLP **log** exporter resolves an `IHttpClientFactory` that needs
 > `ILoggerFactory` while it is still being built). Using the default (gRPC) for the
 > gateway's **own** telemetry avoids the crash; **client** (browser) telemetry is
 > unaffected because it is proxied separately over HTTP/protobuf via `/app/_otlp/`.
-> See the "Versions & preview notes" section below.
+> See the "Versions & integration notes" section below.
 
 At startup, the hosting layer:
 1. Reads the WASM project's `staticwebassets.build.json` manifest to locate static files
@@ -207,11 +207,10 @@ BlazorStandalone/
 
 1. **Start the AppHost:**
    ```bash
-   cd BlazorStandalone.AppHost
-   dotnet run
+   aspire start
    ```
 
-2. **Open the Aspire Dashboard** using the login URL from the console output
+2. **Open the Aspire Dashboard** using the login URL from the console output. Run `aspire wait gateway` before navigating to the app.
 
 3. **Navigate to the WASM app** — click the gateway URL in the Resources page, then append `/app/`
 
@@ -225,16 +224,18 @@ BlazorStandalone/
      `ClientServiceDefaults/Extensions.cs`) so they appear quickly during a live demo, rather than
      the OpenTelemetry SDK default of 60s.
 
-## Versions & preview notes
+Stop the app with `aspire stop` when finished.
 
-This sample targets **Aspire 13.6** with a **.NET 11 RC1** Blazor WebAssembly client. All projects target `net11.0`.
+## Versions & integration notes
 
-The Blazor hosting integration is preview-only. The Aspire versions used here are published on the public Aspire staging feed configured in `NuGet.Config`:
+This sample uses the official **Aspire 13.6** release with a **.NET 11 RC1** Blazor WebAssembly client. All projects target `net11.0`.
+
+The Aspire CLI channel is `stable`, and `NuGet.Config` uses only nuget.org; no staging feed is required. The Blazor hosting integration included with the official 13.6 release is still preview-labeled, so its package reference retains the published preview suffix.
 
 | Package | Version | Source |
 |---------|---------|--------|
-| `Aspire.AppHost.Sdk` | `13.6.0` | Aspire staging |
-| `Aspire.Hosting.Blazor` | `13.6.0-preview.1.26475.12` | Aspire staging |
+| `Aspire.AppHost.Sdk` | `13.6.0` | nuget.org |
+| `Aspire.Hosting.Blazor` | `13.6.0-preview.1.26479.8` | nuget.org |
 | `Microsoft.AspNetCore.Components.WebAssembly` | `11.0.0-rc.1.26425.128` | nuget.org |
 | Client `OpenTelemetry.*` | `1.19.1` (exporter/hosting), `1.19.0` (instrumentation) | nuget.org |
 
